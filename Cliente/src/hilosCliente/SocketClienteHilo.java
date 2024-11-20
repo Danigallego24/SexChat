@@ -12,10 +12,9 @@ import java.util.Scanner;
 public class SocketClienteHilo {
 	
 	public static final int PUERTO = 6969;
-	public static final String IP_SERVER = "localhost";
+	public static final String IP_SERVER = "192.168.137.237";
 	public static InetSocketAddress direccionServidor;
 	public static Socket socketAlServidor;
-	private static PrintStream salida;
 	private static Scanner sc = new Scanner(System.in);
 	
 	public static void main(String[] args) {
@@ -37,7 +36,7 @@ public class SocketClienteHilo {
 			
 			//Salida al servidor
 			
-			salida = new PrintStream(socketAlServidor.getOutputStream());
+			PrintStream salida = new PrintStream(socketAlServidor.getOutputStream());
 			
 			//Usuario a introducir	
 			
@@ -46,19 +45,13 @@ public class SocketClienteHilo {
 			salida.println(nickname);		
 			
 			boolean continuar = true;
+				
+			Thread hiloEnvio = new Thread(new EnviarMensajes(socketAlServidor));
+            hiloEnvio.start();
 			
-			do {
-	
-				
-				Thread hiloEnvio = new Thread(new EnviarMensajes(socketAlServidor));
-	            hiloEnvio.start();
-				
-				String respuestaClientes = entradaBuffer.readLine();
-								
-				System.out.println(respuestaClientes);	
-				
-			}while (continuar);
-												
+			String respuestaClientes = entradaBuffer.readLine();
+							
+			System.out.println(respuestaClientes);										
 
 			socketAlServidor.close();
 			
@@ -85,47 +78,6 @@ public class SocketClienteHilo {
 		
 		System.out.println("CLIENTE: Conexion establecida... a " + IP_SERVER + 
 				" por el puerto " + PUERTO);
-		
-	}
-	
-	static class EnviarMensajes implements Runnable{
-		
-		private Socket socket;
-		
-		public EnviarMensajes(Socket socket) {
-			
-			this.socket = socket;
-			
-		}
-
-		@Override
-		public void run() {
-
-			try {
-				salida = new PrintStream(socketAlServidor.getOutputStream());
-				
-				while (true) {
-                    System.out.print("Ingresa su mensaje: ");
-                    String mensaje = sc.nextLine();
-                    
-                    salida.println(mensaje);
-                    
-                    if (mensaje.equalsIgnoreCase("FIN")) {
-                    	
-                        System.out.println("Cerrando conexión...");
-                        socket.close();
-                        break;
-                        
-                    }
-                    
-                }
-				
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-		}
 		
 	}
 	
