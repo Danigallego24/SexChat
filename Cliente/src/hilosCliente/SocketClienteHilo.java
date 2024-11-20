@@ -11,46 +11,57 @@ import java.util.Scanner;
 
 public class SocketClienteHilo {
 	
-	public static final int PUERTO = 2018;
+	public static final int PUERTO = 6969;
 	public static final String IP_SERVER = "localhost";
+	public static InetSocketAddress direccionServidor;
+	public static Socket socketAlServidor;
+	private static PrintStream salida;
+	private static Scanner sc = new Scanner(System.in);
 	
 	public static void main(String[] args) {
-		System.out.println("        APLICACIÓN CLIENTE         ");
-		System.out.println("-----------------------------------");
-
-		InetSocketAddress direccionServidor = new InetSocketAddress(IP_SERVER, PUERTO);
 		
-		try (Scanner sc = new Scanner(System.in)){
-						
-			System.out.println("CLIENTE: Esperando a que el servidor acepte la conexión");
-			Socket socketAlServidor = new Socket();
-			socketAlServidor.connect(direccionServidor);
-			System.out.println("CLIENTE: Conexion establecida... a " + IP_SERVER + 
-					" por el puerto " + PUERTO);
+		System.out.println("              [CLIENTE]             ");
+		System.out.println("------------------------------------");
 
+		direccionServidor = new InetSocketAddress(IP_SERVER, PUERTO);
+		
+		try {
+			
+			//Establecer conexion con servidor
+			
+			establecerConexion();
+
+			//Entrada al servidor
 			InputStreamReader entrada = new InputStreamReader(socketAlServidor.getInputStream());
 			BufferedReader entradaBuffer = new BufferedReader(entrada);
 			
-			PrintStream salida = new PrintStream(socketAlServidor.getOutputStream());
+			//Salida al servidor
 			
-			String texto = "";
+			salida = new PrintStream(socketAlServidor.getOutputStream());
+			
+			//Usuario a introducir	
+			
+			System.out.println("Introduzca el nickname de usuario deseado");
+			String nickname = sc.nextLine();
+			salida.println(nickname);		
+			
 			boolean continuar = true;
+			
 			do {
-				System.out.println("CLIENTE: Escribe mensaje (FIN para terminar): ");
-				texto = sc.nextLine();//frase que vamos a mandar para contar				
+	
 				
-				salida.println(texto);
-				System.out.println("CLIENTE: Esperando respuesta ...... ");				
-				String respuesta = entradaBuffer.readLine();
+				Thread hiloEnvio = new Thread(new EnviarMensajes(socketAlServidor));
+	            hiloEnvio.start();
+				
+				String respuestaClientes = entradaBuffer.readLine();
 								
-				if("OK".equalsIgnoreCase(respuesta)) {
-					continuar = false;
-				}else {
-					System.out.println("CLIENTE: Servidor responde, numero de letras: " + respuesta);
-				}				
-			}while(continuar);
-			//Cerramos la conexion
+				System.out.println(respuestaClientes);	
+				
+			}while (continuar);
+												
+
 			socketAlServidor.close();
+			
 		} catch (UnknownHostException e) {
 			System.err.println("CLIENTE: No encuentro el servidor en la dirección" + IP_SERVER);
 			e.printStackTrace();
@@ -63,6 +74,59 @@ public class SocketClienteHilo {
 		}
 		
 		System.out.println("CLIENTE: Fin del programa");
+	}
+	
+	public static void establecerConexion() throws Exception {
+		
+		System.out.println("CLIENTE: Esperando a que el servidor acepte la conexión");
+		
+		socketAlServidor = new Socket();
+		socketAlServidor.connect(direccionServidor);
+		
+		System.out.println("CLIENTE: Conexion establecida... a " + IP_SERVER + 
+				" por el puerto " + PUERTO);
+		
+	}
+	
+	static class EnviarMensajes implements Runnable{
+		
+		private Socket socket;
+		
+		public EnviarMensajes(Socket socket) {
+			
+			this.socket = socket;
+			
+		}
+
+		@Override
+		public void run() {
+
+			try {
+				salida = new PrintStream(socketAlServidor.getOutputStream());
+				
+				while (true) {
+                    System.out.print("Ingresa su mensaje: ");
+                    String mensaje = sc.nextLine();
+                    
+                    salida.println(mensaje);
+                    
+                    if (mensaje.equalsIgnoreCase("FIN")) {
+                    	
+                        System.out.println("Cerrando conexión...");
+                        socket.close();
+                        break;
+                        
+                    }
+                    
+                }
+				
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+		}
+		
 	}
 	
 }
